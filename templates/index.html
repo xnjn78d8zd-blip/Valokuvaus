@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Valokuvauksen Arvostelu – AI-lehtori</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo">📷</div>
+  <h1>Valokuvauksen Arvostelu</h1>
+  <p>Tekoäly arvostelee kuvasi kuin kokenut valokuvaustaiteen professori</p>
+</header>
+
+<main class="container">
+
+  <!-- ── Upload form ──────────────────────────────────────────────── -->
+  <form id="critique-form" enctype="multipart/form-data">
+
+    <!-- Photo drop zone -->
+    <div class="upload-card" id="drop-zone">
+      <input type="file" id="photo-input" name="photo"
+             accept="image/jpeg,image/png,image/webp,image/gif"
+             required aria-label="Valitse kuva">
+      <div id="upload-placeholder">
+        <div class="upload-icon">🖼️</div>
+        <h2>Lataa valokuva</h2>
+        <p>Klikkaa tai vedä kuva tähän · JPEG, PNG, WebP, GIF · max 20 MB</p>
+      </div>
+      <div id="preview-wrapper">
+        <img id="preview-img" src="" alt="Esikatselu">
+        <button type="button" class="preview-remove" id="remove-photo"
+                aria-label="Poista kuva">✕</button>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="form-section">
+      <label for="description">Kuvan kuvaus <span style="color:var(--accent)">*</span></label>
+      <textarea id="description" name="description" rows="3"
+                placeholder="Kerro lyhyesti mitä kuva esittää, missä se on otettu ja mikä oli ideasi tai intentio sen takana..."
+                required></textarea>
+    </div>
+
+    <!-- Style selector -->
+    <div class="form-section">
+      <label>Valokuvatyyli</label>
+      <div class="style-grid">
+
+        <label>
+          <input type="radio" name="style" value="fashion">
+          <span class="style-btn">
+            <span class="icon">👗</span>Muoti
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="art" checked>
+          <span class="style-btn">
+            <span class="icon">🎨</span>Taide
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="food">
+          <span class="style-btn">
+            <span class="icon">🍽️</span>Ruoka
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="documentary">
+          <span class="style-btn">
+            <span class="icon">🌍</span>Dokumentaarinen
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="press">
+          <span class="style-btn">
+            <span class="icon">📰</span>Lehtikuva
+          </span>
+        </label>
+
+      </div>
+    </div>
+
+    <button type="submit" class="btn-submit" id="submit-btn">
+      ✦ Arvioi valokuva
+    </button>
+  </form>
+
+  <!-- Error -->
+  <div class="error-banner" id="error-banner" role="alert"></div>
+
+  <!-- Loading -->
+  <div id="loading" aria-live="polite">
+    <div class="spinner"></div>
+    <p>Professori tarkastelee kuvaasi…</p>
+  </div>
+
+  <!-- ── Results ─────────────────────────────────────────────────── -->
+  <section id="results" aria-live="polite">
+
+    <!-- Grade header -->
+    <div class="results-header">
+      <div class="grade-ring">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <!-- track -->
+          <circle cx="55" cy="55" r="46"
+                  fill="none" stroke="#2e3035" stroke-width="11"/>
+          <!-- progress arc -->
+          <circle id="grade-arc" cx="55" cy="55" r="46"
+                  fill="none" stroke="#f5a623" stroke-width="11"
+                  stroke-linecap="round"
+                  stroke-dasharray="289.03"
+                  stroke-dashoffset="289.03"
+                  transform="rotate(-90 55 55)"
+                  style="transition: stroke-dashoffset .8s ease, stroke .4s ease"/>
+        </svg>
+        <div class="grade-number">
+          <span id="grade-value" style="color: var(--accent)">–</span>
+          <span class="grade-denom">/10</span>
+        </div>
+      </div>
+
+      <div class="grade-info">
+        <h2 id="grade-label">Arvosana</h2>
+        <p id="grade-explanation"></p>
+      </div>
+    </div>
+
+    <!-- Analysis cards -->
+    <div class="cards-grid">
+
+      <div class="card">
+        <h3>⚙️ Tekniikka</h3>
+        <p id="technical-analysis"></p>
+      </div>
+
+      <div class="card">
+        <h3>🔲 Sommittelu</h3>
+        <p id="composition-analysis"></p>
+      </div>
+
+      <div class="card card-full">
+        <h3 id="style-label">🎯 Genrepalaute</h3>
+        <p id="style-feedback"></p>
+      </div>
+
+      <div class="card card-full">
+        <h3>💡 Parannusehdotukset</h3>
+        <ul class="improvements-list" id="improvements-list"></ul>
+      </div>
+
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-box">
+      <h3>✅ Kokonaisarvio</h3>
+      <p id="overall-summary"></p>
+    </div>
+
+    <button type="button" class="btn-reset" id="reset-btn">
+      ↩ Arvioi toinen kuva
+    </button>
+
+  </section>
+
+</main>
+
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+function gradeColor(g) {
+  if (g <= 3) return '#e05252';
+  if (g <= 5) return '#f0882a';
+  if (g <= 7) return '#f5a623';
+  return '#4caf7d';
+}
+
+function gradeLabel(g) {
+  if (g <= 2) return 'Erittäin heikko';
+  if (g <= 4) return 'Aloitteleva taso';
+  if (g <= 5) return 'Kehittyvä';
+  if (g <= 6) return 'Tyydyttävä';
+  if (g <= 7) return 'Hyvä';
+  if (g <= 8) return 'Kiitettävä';
+  if (g <= 9) return 'Erinomainen';
+  return 'Mestariteos';
+}
+
+// ── Upload / preview ──────────────────────────────────────────────────────
+const dropZone    = $('drop-zone');
+const photoInput  = $('photo-input');
+const previewWrap = $('preview-wrapper');
+const previewImg  = $('preview-img');
+const placeholder = $('upload-placeholder');
+
+function showPreview(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    previewImg.src = e.target.result;
+    previewWrap.style.display = 'block';
+    placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPreview() {
+  previewImg.src = '';
+  previewWrap.style.display = 'none';
+  placeholder.style.display = 'block';
+  photoInput.value = '';
+}
+
+photoInput.addEventListener('change', () => {
+  if (photoInput.files[0]) showPreview(photoInput.files[0]);
+});
+
+$('remove-photo').addEventListener('click', e => {
+  e.preventDefault();
+  clearPreview();
+});
+
+// Drag & drop
+['dragenter', 'dragover'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag-over'); })
+);
+['dragleave', 'drop'].forEach(ev =>
+  dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag-over'); })
+);
+dropZone.addEventListener('drop', e => {
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    // Inject file into the input for form submission
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    photoInput.files = dt.files;
+    showPreview(file);
+  }
+});
+
+// ── Form submit ───────────────────────────────────────────────────────────
+$('critique-form').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const errorBanner = $('error-banner');
+  const loading     = $('loading');
+  const results     = $('results');
+  const submitBtn   = $('submit-btn');
+
+  // Hide previous state
+  errorBanner.style.display = 'none';
+  results.style.display = 'none';
+  loading.style.display = 'block';
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Arvioidaan…';
+
+  try {
+    const formData = new FormData(e.target);
+    const resp = await fetch('/critique', { method: 'POST', body: formData });
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      throw new Error(data.error || `Virhe ${resp.status}`);
+    }
+
+    renderResults(data);
+    results.style.display = 'block';
+    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    errorBanner.textContent = `⚠️ ${err.message}`;
+    errorBanner.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+    submitBtn.disabled = false;
+    submitBtn.textContent = '✦ Arvioi valokuva';
+  }
+});
+
+// ── Render results ────────────────────────────────────────────────────────
+function renderResults(d) {
+  const g     = d.grade;
+  const color = gradeColor(g);
+  const circ  = 289.03; // 2π × 46
+
+  // Grade ring animation
+  const arc = $('grade-arc');
+  arc.style.stroke = color;
+  arc.style.strokeDashoffset = circ * (1 - g / 10);
+
+  // Grade number
+  const gv = $('grade-value');
+  gv.textContent = g;
+  gv.style.color = color;
+
+  $('grade-label').textContent = gradeLabel(g);
+  $('grade-explanation').textContent = d.grade_explanation;
+
+  $('technical-analysis').textContent  = d.technical_analysis;
+  $('composition-analysis').textContent = d.composition_analysis;
+  $('style-feedback').textContent       = d.style_feedback;
+  $('overall-summary').textContent      = d.overall_summary;
+
+  const list = $('improvements-list');
+  list.innerHTML = '';
+  (d.improvements || []).forEach(tip => {
+    const li = document.createElement('li');
+    li.textContent = tip;
+    list.appendChild(li);
+  });
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+$('reset-btn').addEventListener('click', () => {
+  $('results').style.display = 'none';
+  clearPreview();
+  $('description').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+</script>
+
+</body>
+</html>
