@@ -398,3 +398,27 @@ input[type="radio"]:checked + .style-btn {
 }
 
 .btn-reset:hover { border-color: var(--text-muted); color: var(--text); }
+
+/* ── iPhone / PWA safe-area & touch improvements ──────────────────────────── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .container {
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 480px) {
+  .site-header { padding: 2rem 1rem 1.5rem; }
+  .site-header h1 { font-size: 1.4rem; }
+
+  .upload-card { padding: 2rem 1rem; }
+
+  /* Larger touch targets on mobile */
+  .btn-submit,
+  .btn-reset  { padding: 1.1rem; font-size: 1rem; }
+
+  .style-btn  { padding: 1rem .5rem .85rem; }
+
+  textarea { font-size: 1rem; }
+
+  .results-header { flex-direction: column; text-align: center; gap: 1rem; }
+}
