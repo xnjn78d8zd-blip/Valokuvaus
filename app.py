@@ -203,6 +203,8 @@ def critique():
         )
     except anthropic.APIError as exc:
         return jsonify({'error': f'API-virhe: {exc}'}), 500
+    except Exception as exc:
+        return jsonify({'error': f'Virhe: {type(exc).__name__}: {exc}'}), 500
 
     try:
         result = json.loads(response.content[0].text)
