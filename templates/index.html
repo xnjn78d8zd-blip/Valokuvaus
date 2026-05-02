@@ -253,42 +253,73 @@ dropZone.addEventListener('drop', e => {
 });
 
 // ── Form submit ───────────────────────────────────────────────────────────
-$('critique-form').addEventListener('submit', async e => {
+$('critique-form').addEventListener('submit', e => {
   e.preventDefault();
 
   const errorBanner = $('error-banner');
   const loading     = $('loading');
   const results     = $('results');
   const submitBtn   = $('submit-btn');
+  const file        = photoInput.files[0];
 
-  // Hide previous state
+  if (!file) {
+    errorBanner.textContent = '⚠️ Valitse ensin kuva';
+    errorBanner.style.display = 'block';
+    return;
+  }
+
   errorBanner.style.display = 'none';
   results.style.display = 'none';
   loading.style.display = 'block';
   submitBtn.disabled = true;
   submitBtn.textContent = 'Arvioidaan…';
 
-  try {
-    const formData = new FormData(e.target);
-    const resp = await fetch('/critique', { method: 'POST', body: formData });
-    const data = await resp.json();
+  // Read file as base64 and send as JSON — avoids Safari FormData bug
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const dataUrl  = reader.result;          // data:<type>;base64,<data>
+      const mimeType = dataUrl.split(';')[0].split(':')[1];
+      const b64      = dataUrl.split(',')[1];
+      const style    = document.querySelector('input[name="style"]:checked').value;
 
-    if (!resp.ok || data.error) {
-      throw new Error(data.error || `Virhe ${resp.status}`);
+      const resp = await fetch('/critique', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photo_b64:   b64,
+          photo_type:  mimeType,
+          description: $('description').value.trim(),
+          style,
+        }),
+      });
+      const data = await resp.json();
+
+      if (!resp.ok || data.error) {
+        throw new Error(data.error || `Virhe ${resp.status}`);
+      }
+
+      renderResults(data);
+      results.style.display = 'block';
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+      errorBanner.textContent = `⚠️ ${err.message}`;
+      errorBanner.style.display = 'block';
+    } finally {
+      loading.style.display = 'none';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '✦ Arvioi valokuva';
     }
-
-    renderResults(data);
-    results.style.display = 'block';
-    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  } catch (err) {
-    errorBanner.textContent = `⚠️ ${err.message}`;
+  };
+  reader.onerror = () => {
+    errorBanner.textContent = '⚠️ Kuvan lukeminen epäonnistui — kokeile toista kuvaa';
     errorBanner.style.display = 'block';
-  } finally {
     loading.style.display = 'none';
     submitBtn.disabled = false;
     submitBtn.textContent = '✦ Arvioi valokuva';
-  }
+  };
+  reader.readAsDataURL(file);
 });
 
 // ── Render results ────────────────────────────────────────────────────────

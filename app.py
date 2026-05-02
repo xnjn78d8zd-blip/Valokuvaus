@@ -11,7 +11,7 @@ from PIL import Image
 load_dotenv()
 
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 20 MB max upload
+app.config['MAX_CONTENT_LENGTH'] = 40 * 1024 * 1024  # 40 MB — base64 JSON is ~33% larger
 
 client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
 
@@ -133,6 +133,27 @@ def _prepare_image(file_obj) -> tuple[bytes, str]:
     return buf.getvalue(), media_type
 
 
+def _prepare_image_bytes(raw: bytes, media_type: str) -> tuple[bytes, str]:
+    """Same as _prepare_image but takes raw bytes directly (for JSON/base64 uploads)."""
+    img = Image.open(io.BytesIO(raw))
+    if img.mode not in ('RGB', 'RGBA'):
+        img = img.convert('RGB')
+        media_type = 'image/jpeg'
+    if img.mode == 'RGBA' and media_type != 'image/png':
+        img = img.convert('RGB')
+        media_type = 'image/jpeg'
+    max_dim = 1568
+    if max(img.width, img.height) > max_dim:
+        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    if media_type == 'image/png':
+        img.save(buf, format='PNG', optimize=True)
+    else:
+        img.save(buf, format='JPEG', quality=85, optimize=True)
+        media_type = 'image/jpeg'
+    return buf.getvalue(), media_type
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -140,24 +161,46 @@ def index():
 
 @app.route('/critique', methods=['POST'])
 def critique():
-    if 'photo' not in request.files:
-        return jsonify({'error': 'Kuvaa ei ladattu'}), 400
+    # Accept both JSON (base64) and multipart/form-data
+    if request.is_json:
+        body = request.get_json()
+        description = (body.get('description') or '').strip()
+        style = body.get('style', 'art')
+        photo_b64_raw = body.get('photo_b64', '')
+        media_type = body.get('photo_type', 'image/jpeg')
 
-    photo = request.files['photo']
-    description = request.form.get('description', '').strip()
-    style = request.form.get('style', 'art')
+        if not photo_b64_raw:
+            return jsonify({'error': 'Kuvaa ei ladattu'}), 400
+        if not description:
+            return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
+        if media_type not in ALLOWED_TYPES:
+            media_type = 'image/jpeg'
 
-    if not photo.filename:
-        return jsonify({'error': 'Kuvaa ei valittu'}), 400
-    if not description:
-        return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
+        try:
+            raw = base64.b64decode(photo_b64_raw)
+            image_data, media_type = _prepare_image_bytes(raw, media_type)
+        except Exception as exc:
+            return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
 
-    try:
-        image_data, media_type = _prepare_image(photo)
-    except ValueError as exc:
-        return jsonify({'error': str(exc)}), 400
-    except Exception as exc:
-        return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
+    else:
+        if 'photo' not in request.files:
+            return jsonify({'error': 'Kuvaa ei ladattu'}), 400
+
+        photo = request.files['photo']
+        description = request.form.get('description', '').strip()
+        style = request.form.get('style', 'art')
+
+        if not photo.filename:
+            return jsonify({'error': 'Kuvaa ei valittu'}), 400
+        if not description:
+            return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
+
+        try:
+            image_data, media_type = _prepare_image(photo)
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        except Exception as exc:
+            return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
 
     image_b64 = base64.standard_b64encode(image_data).decode('utf-8')
     style_name = STYLE_NAMES.get(style, 'Valokuvaus')
