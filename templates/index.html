@@ -274,43 +274,50 @@ $('critique-form').addEventListener('submit', e => {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Arvioidaan…';
 
-  // Read file as base64 and send as JSON — avoids Safari FormData bug
+  // Read file as base64 and POST as JSON via XHR — avoids Safari fetch() bugs
   const reader = new FileReader();
-  reader.onload = async () => {
-    try {
-      const dataUrl  = reader.result;          // data:<type>;base64,<data>
-      const mimeType = dataUrl.split(';')[0].split(':')[1];
-      const b64      = dataUrl.split(',')[1];
-      const style    = document.querySelector('input[name="style"]:checked').value;
+  reader.onload = () => {
+    const dataUrl  = reader.result;
+    const mimeType = dataUrl.split(';')[0].split(':')[1];
+    const b64      = dataUrl.split(',')[1];
+    const style    = document.querySelector('input[name="style"]:checked').value;
 
-      const resp = await fetch('/critique', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photo_b64:   b64,
-          photo_type:  mimeType,
-          description: $('description').value.trim(),
-          style,
-        }),
-      });
-      const data = await resp.json();
+    const payload = JSON.stringify({
+      photo_b64:   b64,
+      photo_type:  mimeType,
+      description: $('description').value.trim(),
+      style,
+    });
 
-      if (!resp.ok || data.error) {
-        throw new Error(data.error || `Virhe ${resp.status}`);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/critique');
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status !== 200 || data.error) {
+          throw new Error(data.error || `Virhe ${xhr.status}`);
+        }
+        renderResults(data);
+        results.style.display = 'block';
+        results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) {
+        errorBanner.textContent = `⚠️ ${err.message}`;
+        errorBanner.style.display = 'block';
+      } finally {
+        loading.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '✦ Arvioi valokuva';
       }
-
-      renderResults(data);
-      results.style.display = 'block';
-      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    } catch (err) {
-      errorBanner.textContent = `⚠️ ${err.message}`;
+    };
+    xhr.onerror = () => {
+      errorBanner.textContent = '⚠️ Verkkovirhe — tarkista yhteys ja yritä uudelleen';
       errorBanner.style.display = 'block';
-    } finally {
       loading.style.display = 'none';
       submitBtn.disabled = false;
       submitBtn.textContent = '✦ Arvioi valokuva';
-    }
+    };
+    xhr.send(payload);
   };
   reader.onerror = () => {
     errorBanner.textContent = '⚠️ Kuvan lukeminen epäonnistui — kokeile toista kuvaa';

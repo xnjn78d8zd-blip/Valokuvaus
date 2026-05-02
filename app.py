@@ -3,7 +3,7 @@ import base64
 import json
 import io
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, make_response
 import anthropic
 from dotenv import load_dotenv
 from PIL import Image
@@ -156,7 +156,9 @@ def _prepare_image_bytes(raw: bytes, media_type: str) -> tuple[bytes, str]:
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    resp = make_response(render_template('index.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
 
 
 @app.route('/critique', methods=['POST'])
