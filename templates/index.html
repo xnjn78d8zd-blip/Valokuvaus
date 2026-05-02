@@ -295,8 +295,9 @@ $('critique-form').addEventListener('submit', e => {
     xhr.onload = () => {
       try {
         if (xhr.status !== 200) {
-          let msg = `Palvelinvirhe ${xhr.status} — yritä uudelleen`;
-          try { const d = JSON.parse(xhr.responseText); if (d.error) msg = d.error; } catch (_) {}
+          let msg;
+          try { const d = JSON.parse(xhr.responseText); msg = d.error || `Virhe ${xhr.status}`; }
+          catch (_) { msg = `Virhe ${xhr.status}: ${xhr.responseText.substring(0, 300)}`; }
           throw new Error(msg);
         }
         const data = JSON.parse(xhr.responseText);
