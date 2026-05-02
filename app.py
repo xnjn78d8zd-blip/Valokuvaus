@@ -23,8 +23,6 @@ STYLE_NAMES = {
     'press': 'Lehtivalokuvaus',
 }
 
-# Stable system prompt — cached with cache_control so it's only tokenized once
-# per 5-minute window even when many photos are critiqued in quick succession.
 SYSTEM_PROMPT = """Olet kokenut valokuvaustaiteen professori ja kansainvälinen tuomari, jolla on yli 30 vuoden kokemus kaikista valokuvauksen lajeista. Arvioit valokuvia opettajan silmin — kriittisesti mutta rakentavasti, kuten oikeassa oppilaitoksen kritiikkisessiossa.
 
 Arvioit aina seuraavat osa-alueet:
@@ -45,49 +43,48 @@ Olet rehellinen ja suora, mutta aina kannustava. Anna arvosana-asteikolla 1–10
 8–9 = Erinomainen, julkaisukelpoinen työ
 10 = Mestariteos, poikkeuksellinen saavutus"""
 
-CRITIQUE_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'grade': {
-            'type': 'integer',
-            'description': 'Arvosana 1 (erittäin heikko) – 10 (mestariteos)',
+# Tool-based structured output — more compatible than output_config across SDK versions
+CRITIQUE_TOOL = {
+    'name': 'submit_critique',
+    'description': 'Lähetä valokuvan arvostelu strukturoitussa muodossa',
+    'input_schema': {
+        'type': 'object',
+        'properties': {
+            'grade': {
+                'type': 'integer',
+                'description': 'Arvosana 1 (erittäin heikko) – 10 (mestariteos)',
+            },
+            'grade_explanation': {
+                'type': 'string',
+                'description': '2–3 lausetta siitä, miksi juuri tämä arvosana annettiin',
+            },
+            'technical_analysis': {
+                'type': 'string',
+                'description': 'Yksityiskohtainen tekninen analyysi: valotus, tarkennus, valaistus, kohina, värit',
+            },
+            'composition_analysis': {
+                'type': 'string',
+                'description': 'Sommitteluanalyysi: asettelu, linjat, kehystys, tilankäyttö, tasapaino',
+            },
+            'style_feedback': {
+                'type': 'string',
+                'description': 'Genrespesifinen palaute valitun valokuvauslajin konventioiden ja standardien mukaan',
+            },
+            'improvements': {
+                'type': 'array',
+                'items': {'type': 'string'},
+                'description': '4–6 konkreettista, toteutettavaa parannusehdotusta',
+            },
+            'overall_summary': {
+                'type': 'string',
+                'description': 'Kokonaisarvio 2–3 lauseessa: vahvuudet ja tärkeimmät kehityskohteet',
+            },
         },
-        'grade_explanation': {
-            'type': 'string',
-            'description': '2–3 lausetta siitä, miksi juuri tämä arvosana annettiin',
-        },
-        'technical_analysis': {
-            'type': 'string',
-            'description': 'Yksityiskohtainen tekninen analyysi: valotus, tarkennus, valaistus, kohina, värit',
-        },
-        'composition_analysis': {
-            'type': 'string',
-            'description': 'Sommitteluanalyysi: asettelu, linjat, kehystys, tilankäyttö, tasapaino',
-        },
-        'style_feedback': {
-            'type': 'string',
-            'description': 'Genrespesifinen palaute valitun valokuvauslajin konventioiden ja standardien mukaan',
-        },
-        'improvements': {
-            'type': 'array',
-            'items': {'type': 'string'},
-            'description': '4–6 konkreettista, toteutettavaa parannusehdotusta',
-        },
-        'overall_summary': {
-            'type': 'string',
-            'description': 'Kokonaisarvio 2–3 lauseessa: vahvuudet ja tärkeimmät kehityskohteet',
-        },
+        'required': [
+            'grade', 'grade_explanation', 'technical_analysis',
+            'composition_analysis', 'style_feedback', 'improvements', 'overall_summary',
+        ],
     },
-    'required': [
-        'grade',
-        'grade_explanation',
-        'technical_analysis',
-        'composition_analysis',
-        'style_feedback',
-        'improvements',
-        'overall_summary',
-    ],
-    'additionalProperties': False,
 }
 
 ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
@@ -98,7 +95,6 @@ EXT_TO_TYPE = {
 
 
 def _prepare_image(file_obj) -> tuple[bytes, str]:
-    """Read, validate, resize and return (b64_bytes, media_type)."""
     raw = file_obj.read()
     media_type = file_obj.content_type or ''
 
@@ -108,33 +104,10 @@ def _prepare_image(file_obj) -> tuple[bytes, str]:
     if media_type not in ALLOWED_TYPES:
         raise ValueError('Tuetut kuvaformaatit: JPEG, PNG, WebP, GIF')
 
-    img = Image.open(io.BytesIO(raw))
-
-    # Normalise colour mode
-    if img.mode not in ('RGB', 'RGBA'):
-        img = img.convert('RGB')
-        media_type = 'image/jpeg'
-    if img.mode == 'RGBA' and media_type != 'image/png':
-        img = img.convert('RGB')
-        media_type = 'image/jpeg'
-
-    # Resize — keep within Anthropic's recommended 1568 px long edge
-    max_dim = 1568
-    if max(img.width, img.height) > max_dim:
-        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
-
-    buf = io.BytesIO()
-    if media_type == 'image/png':
-        img.save(buf, format='PNG', optimize=True)
-    else:
-        img.save(buf, format='JPEG', quality=85, optimize=True)
-        media_type = 'image/jpeg'
-
-    return buf.getvalue(), media_type
+    return _prepare_image_bytes(raw, media_type)
 
 
 def _prepare_image_bytes(raw: bytes, media_type: str) -> tuple[bytes, str]:
-    """Same as _prepare_image but takes raw bytes directly (for JSON/base64 uploads)."""
     img = Image.open(io.BytesIO(raw))
     if img.mode not in ('RGB', 'RGBA'):
         img = img.convert('RGB')
@@ -152,6 +125,20 @@ def _prepare_image_bytes(raw: bytes, media_type: str) -> tuple[bytes, str]:
         img.save(buf, format='JPEG', quality=85, optimize=True)
         media_type = 'image/jpeg'
     return buf.getvalue(), media_type
+
+
+# Return JSON for all error responses so the client always gets parseable data
+@app.errorhandler(413)
+def too_large(_):
+    return jsonify({'error': 'Kuva on liian suuri — pienennä alle 20 MB'}), 413
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': f'Palvelinvirhe: {e}'}), 500
+
+@app.errorhandler(Exception)
+def unhandled(e):
+    return jsonify({'error': f'Odottamaton virhe: {e}'}), 500
 
 
 @app.route('/')
@@ -165,7 +152,7 @@ def index():
 def critique():
     # Accept both JSON (base64) and multipart/form-data
     if request.is_json:
-        body = request.get_json()
+        body = request.get_json(force=True, silent=True) or {}
         description = (body.get('description') or '').strip()
         style = body.get('style', 'art')
         photo_b64_raw = body.get('photo_b64', '')
@@ -221,16 +208,10 @@ def critique():
             system=[{
                 'type': 'text',
                 'text': SYSTEM_PROMPT,
-                # Cache the stable professor persona — hits on subsequent requests
-                # within the same 5-minute window at ~0.1× token cost.
                 'cache_control': {'type': 'ephemeral'},
             }],
-            output_config={
-                'format': {
-                    'type': 'json_schema',
-                    'schema': CRITIQUE_SCHEMA,
-                }
-            },
+            tools=[CRITIQUE_TOOL],
+            tool_choice={'type': 'tool', 'name': 'submit_critique'},
             messages=[{
                 'role': 'user',
                 'content': [
@@ -252,13 +233,12 @@ def critique():
         return jsonify({'error': f'Virhe: {type(exc).__name__}: {exc}'}), 500
 
     try:
-        result = json.loads(response.content[0].text)
-    except (json.JSONDecodeError, IndexError):
+        tool_block = next(b for b in response.content if b.type == 'tool_use')
+        result = tool_block.input
+    except (StopIteration, AttributeError):
         return jsonify({'error': 'Vastauksen käsittelyvirhe — yritä uudelleen'}), 500
 
-    # Clamp grade to valid range just in case
     result['grade'] = max(1, min(10, int(result.get('grade', 5))))
-
     return jsonify(result)
 
 
