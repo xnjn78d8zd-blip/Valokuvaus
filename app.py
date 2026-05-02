@@ -141,6 +141,14 @@ def unhandled(e):
     return jsonify({'error': f'Odottamaton virhe: {e}'}), 500
 
 
+@app.route('/health')
+def health():
+    return jsonify({
+        'status': 'ok',
+        'has_api_key': bool(os.environ.get('ANTHROPIC_API_KEY')),
+    })
+
+
 @app.route('/')
 def index():
     resp = make_response(render_template('index.html'))
@@ -150,6 +158,7 @@ def index():
 
 @app.route('/critique', methods=['POST'])
 def critique():
+  try:
     # Accept both JSON (base64) and multipart/form-data
     if request.is_json:
         body = request.get_json(force=True, silent=True) or {}
@@ -240,6 +249,9 @@ def critique():
 
     result['grade'] = max(1, min(10, int(result.get('grade', 5))))
     return jsonify(result)
+
+  except Exception as exc:
+    return jsonify({'error': f'Virhe: {type(exc).__name__}: {exc}'}), 500
 
 
 if __name__ == '__main__':
