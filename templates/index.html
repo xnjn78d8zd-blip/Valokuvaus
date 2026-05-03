@@ -152,15 +152,18 @@
   <!-- Error -->
   <div class="error-banner" id="error-banner" role="alert"></div>
 
-  <!-- Loading -->
+  <!-- Loading (fullscreen) -->
   <div id="loading" aria-live="polite">
     <div class="scan-container">
       <img id="scan-preview" src="" alt="">
-      <div class="scan-orbit">
-        <span class="scan-glass">🔍</span>
+      <div class="scan-overlay">
+        <div class="scan-kit">
+          <span class="scan-glass">🔍</span>
+          <div class="scan-beam"></div>
+        </div>
       </div>
     </div>
-    <p>Professori tarkastelee kuvaasi…</p>
+    <p class="scan-text">Professori tarkastelee kuvaasi<span id="scan-dots"></span></p>
   </div>
 
   <!-- ── Results ─────────────────────────────────────────────────── -->
@@ -184,13 +187,47 @@
         </svg>
         <div class="grade-number">
           <span id="grade-value" style="color: var(--accent)">–</span>
-          <span class="grade-denom">/10</span>
+          <span class="grade-denom">/100</span>
         </div>
       </div>
 
       <div class="grade-info">
         <h2 id="grade-label">Arvosana</h2>
         <p id="grade-explanation"></p>
+      </div>
+    </div>
+
+    <!-- Sub-scores -->
+    <div class="subscores-panel">
+      <div class="subscore-row">
+        <span class="sslabel">⚙️ Tekniikka</span>
+        <div class="ssbar"><div class="ssbar-fill" id="score-tekniikka"></div></div>
+        <span class="ssval" id="val-tekniikka">—</span>
+      </div>
+      <div class="subscore-row">
+        <span class="sslabel">💡 Valaistus</span>
+        <div class="ssbar"><div class="ssbar-fill" id="score-valaistus"></div></div>
+        <span class="ssval" id="val-valaistus">—</span>
+      </div>
+      <div class="subscore-row">
+        <span class="sslabel">🔲 Sommittelu</span>
+        <div class="ssbar"><div class="ssbar-fill" id="score-sommittelu"></div></div>
+        <span class="ssval" id="val-sommittelu">—</span>
+      </div>
+      <div class="subscore-row">
+        <span class="sslabel">🎨 Väri & Sävy</span>
+        <div class="ssbar"><div class="ssbar-fill" id="score-vari"></div></div>
+        <span class="ssval" id="val-vari">—</span>
+      </div>
+      <div class="subscore-row">
+        <span class="sslabel">✨ Luovuus</span>
+        <div class="ssbar"><div class="ssbar-fill" id="score-luovuus"></div></div>
+        <span class="ssval" id="val-luovuus">—</span>
+      </div>
+      <div class="subscore-row">
+        <span class="sslabel">❤️ Tunnelma</span>
+        <div class="ssbar"><div class="ssbar-fill" id="score-tunnelma"></div></div>
+        <span class="ssval" id="val-tunnelma">—</span>
       </div>
     </div>
 
@@ -238,21 +275,28 @@
 const $ = id => document.getElementById(id);
 
 function gradeColor(g) {
-  if (g <= 3) return '#e05252';
-  if (g <= 5) return '#f0882a';
-  if (g <= 7) return '#f5a623';
+  if (g <= 30) return '#e05252';
+  if (g <= 50) return '#f0882a';
+  if (g <= 70) return '#f5a623';
   return '#4caf7d';
 }
 
 function gradeLabel(g) {
-  if (g <= 2) return 'Erittäin heikko';
-  if (g <= 4) return 'Aloitteleva taso';
-  if (g <= 5) return 'Kehittyvä';
-  if (g <= 6) return 'Tyydyttävä';
-  if (g <= 7) return 'Hyvä';
-  if (g <= 8) return 'Kiitettävä';
-  if (g <= 9) return 'Erinomainen';
+  if (g <= 20) return 'Erittäin heikko';
+  if (g <= 35) return 'Aloitteleva taso';
+  if (g <= 50) return 'Kehittyvä';
+  if (g <= 60) return 'Tyydyttävä';
+  if (g <= 70) return 'Hyvä';
+  if (g <= 80) return 'Kiitettävä';
+  if (g <= 90) return 'Erinomainen';
   return 'Mestariteos';
+}
+
+function barColor(s) {
+  if (s <= 40) return '#e05252';
+  if (s <= 60) return '#f0882a';
+  if (s <= 75) return '#f5a623';
+  return '#4caf7d';
 }
 
 // ── Upload / preview ──────────────────────────────────────────────────────
@@ -326,11 +370,18 @@ $('critique-form').addEventListener('submit', e => {
   results.style.display = 'none';
   $('critique-form').style.display = 'none';
   $('scan-preview').src = previewImg.src;
-  loading.style.display = 'block';
+  loading.style.display = 'flex';
   submitBtn.disabled = true;
   submitBtn.textContent = 'Arvioidaan…';
 
+  let dotCount = 0;
+  const dotsTimer = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    $('scan-dots').textContent = '.'.repeat(dotCount);
+  }, 500);
+
   function resetUI() {
+    clearInterval(dotsTimer);
     loading.style.display = 'none';
     $('critique-form').style.display = 'block';
     submitBtn.disabled = false;
@@ -433,7 +484,7 @@ function renderResults(d) {
   // Grade ring animation
   const arc = $('grade-arc');
   arc.style.stroke = color;
-  arc.style.strokeDashoffset = circ * (1 - g / 10);
+  arc.style.strokeDashoffset = circ * (1 - g / 100);
 
   // Grade number
   const gv = $('grade-value');
@@ -442,6 +493,24 @@ function renderResults(d) {
 
   $('grade-label').textContent = gradeLabel(g);
   $('grade-explanation').textContent = d.grade_explanation;
+
+  // Sub-scores
+  const scoreMap = {
+    'tekniikka': (d.scores || {}).tekniikka,
+    'valaistus':  (d.scores || {}).valaistus,
+    'sommittelu': (d.scores || {}).sommittelu,
+    'vari':       (d.scores || {}).vari_ja_savy,
+    'luovuus':    (d.scores || {}).luovuus,
+    'tunnelma':   (d.scores || {}).tunnelma,
+  };
+  Object.entries(scoreMap).forEach(([key, val]) => {
+    const s = Math.max(0, Math.min(100, val || 0));
+    $('val-' + key).textContent = s;
+    const fill = $('score-' + key);
+    const c = barColor(s);
+    fill.style.background = 'linear-gradient(90deg,' + c + '99,' + c + ')';
+    setTimeout(() => { fill.style.width = s + '%'; }, 80);
+  });
 
   $('technical-analysis').textContent  = d.technical_analysis;
   $('composition-analysis').textContent = d.composition_analysis;

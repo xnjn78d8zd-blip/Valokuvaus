@@ -33,25 +33,24 @@ STYLE_NAMES = {
 
 SYSTEM_PROMPT = """Olet kokenut valokuvaustaiteen professori ja kansainvälinen tuomari, jolla on yli 30 vuoden kokemus kaikista valokuvauksen lajeista. Arvioit valokuvia opettajan silmin — kriittisesti mutta rakentavasti, kuten oikeassa oppilaitoksen kritiikkisessiossa.
 
-Arvioit aina seuraavat osa-alueet:
-- Tekniikka: valotus, tarkennus, syväterävyys, terävyys, kohina
-- Valaistus: laatu, suunta, värilämpötila, varjot ja valot
-- Sommittelu: kultainen leikkaus/kolmanneksien sääntö, johtavat linjat, kehystys, tasapaino, negatiivinen tila
-- Väri tai sävy: väriharmonia, kontrasti, jälkikäsittelytyyli
-- Genrespesifiset kriteerit
-- Luova visio ja taiteellinen intentio
-- Emotionaalinen vaikutus ja tarinankerronta
+Anna kokonaisarvosana sekä osa-aluekohtaiset pisteet asteikolla 0–100:
+0–30  = Vakavia teknisiä tai taiteellisia puutteita
+31–50 = Kehittyvä, perusasiat hallussa mutta selviä parannuskohteita
+51–70 = Hyvä, ammattimainen taso tai lähellä sitä
+71–85 = Erinomainen, julkaisukelpoinen työ
+86–100 = Mestariteos, poikkeuksellinen saavutus
+
+Arvioi jokainen osa-alue erikseen:
+- Tekniikka (0–100): valotus, tarkennus, syväterävyys, terävyys, kohina
+- Valaistus (0–100): laatu, suunta, värilämpötila, varjot ja valot
+- Sommittelu (0–100): kultainen leikkaus, johtavat linjat, kehystys, tasapaino, negatiivinen tila
+- Väri & Sävy (0–100): väriharmonia, kontrasti, jälkikäsittelytyyli
+- Luovuus (0–100): taiteellinen visio, omaperäisyys, rohkeus
+- Tunnelma (0–100): emotionaalinen vaikutus, tarinankerronta, kokemus
 
 Vastauksesi on AINA suomeksi. Kaikki teksti on suomeksi.
+Olet rehellinen ja suora, mutta aina kannustava."""
 
-Olet rehellinen ja suora, mutta aina kannustava. Anna arvosana-asteikolla 1–10:
-1–3 = Aloittelijan työ, vakavia teknisiä tai taiteellisia puutteita
-4–5 = Kehittyvä, perusasiat hallussa mutta selviä parannuksen paikkoja
-6–7 = Hyvä, ammattimainen taso tai lähellä sitä
-8–9 = Erinomainen, julkaisukelpoinen työ
-10 = Mestariteos, poikkeuksellinen saavutus"""
-
-# Tool-based structured output — more compatible than output_config across SDK versions
 CRITIQUE_TOOL = {
     'name': 'submit_critique',
     'description': 'Lähetä valokuvan arvostelu strukturoitussa muodossa',
@@ -60,11 +59,24 @@ CRITIQUE_TOOL = {
         'properties': {
             'grade': {
                 'type': 'integer',
-                'description': 'Arvosana 1 (erittäin heikko) – 10 (mestariteos)',
+                'description': 'Kokonaisarvosana 0–100',
+            },
+            'scores': {
+                'type': 'object',
+                'description': 'Osa-aluekohtaiset pisteet 0–100',
+                'properties': {
+                    'tekniikka':   {'type': 'integer', 'description': 'Tekninen toteutus 0–100'},
+                    'valaistus':   {'type': 'integer', 'description': 'Valaistus 0–100'},
+                    'sommittelu':  {'type': 'integer', 'description': 'Sommittelu 0–100'},
+                    'vari_ja_savy':{'type': 'integer', 'description': 'Väri ja sävy 0–100'},
+                    'luovuus':     {'type': 'integer', 'description': 'Luovuus ja visio 0–100'},
+                    'tunnelma':    {'type': 'integer', 'description': 'Tunnelma ja tarinankerronta 0–100'},
+                },
+                'required': ['tekniikka', 'valaistus', 'sommittelu', 'vari_ja_savy', 'luovuus', 'tunnelma'],
             },
             'grade_explanation': {
                 'type': 'string',
-                'description': '2–3 lausetta siitä, miksi juuri tämä arvosana annettiin',
+                'description': '2–3 lausetta siitä, miksi juuri tämä kokonaisarvosana annettiin',
             },
             'technical_analysis': {
                 'type': 'string',
@@ -89,7 +101,7 @@ CRITIQUE_TOOL = {
             },
         },
         'required': [
-            'grade', 'grade_explanation', 'technical_analysis',
+            'grade', 'scores', 'grade_explanation', 'technical_analysis',
             'composition_analysis', 'style_feedback', 'improvements', 'overall_summary',
         ],
     },
@@ -256,7 +268,7 @@ def critique():
 
                 tool_block = next(b for b in response.content if b.type == 'tool_use')
                 result = tool_block.input
-                result['grade'] = max(1, min(10, int(result.get('grade', 5))))
+                result['grade'] = max(0, min(100, int(result.get('grade', 50))))
                 result['type'] = 'result'
                 yield f'data: {json.dumps(result, ensure_ascii=False)}\n\n'
 
