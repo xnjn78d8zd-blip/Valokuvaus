@@ -305,31 +305,56 @@ $('critique-form').addEventListener('submit', e => {
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
-      // Step 3: POST as JSON via XHR
+      // Step 3: POST as JSON via XHR, read SSE stream via onprogress
       const style = document.querySelector('input[name="style"]:checked').value;
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/critique');
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.onerror = () => showError('Verkkovirhe — tarkista yhteys ja yritä uudelleen');
-      xhr.onload = () => {
-        try {
-          if (xhr.status !== 200) {
-            let msg;
-            try { const d = JSON.parse(xhr.responseText); msg = d.error || `Virhe ${xhr.status}`; }
-            catch (_) { msg = `Virhe ${xhr.status}: ${xhr.responseText.substring(0, 200)}`; }
-            showError(msg);
-            return;
+
+      let sseHandled = false;
+      let sseBytesRead = 0;
+
+      function processSSE(text) {
+        text.split('\n\n').forEach(chunk => {
+          const match = chunk.match(/^data: (.+)$/m);
+          if (!match || sseHandled) return;
+          let ev;
+          try { ev = JSON.parse(match[1]); } catch(e) { return; }
+          if (ev.type === 'result') {
+            sseHandled = true;
+            renderResults(ev);
+            results.style.display = 'block';
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            resetUI();
+          } else if (ev.type === 'error') {
+            sseHandled = true;
+            showError(ev.error);
           }
-          const data = JSON.parse(xhr.responseText);
-          if (data.error) { showError(data.error); return; }
-          renderResults(data);
-          results.style.display = 'block';
-          results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          resetUI();
-        } catch (err) {
-          showError(err.message);
-        }
+        });
+      }
+
+      xhr.onprogress = () => {
+        if (xhr.status !== 200) return;
+        const newData = xhr.responseText.slice(sseBytesRead);
+        sseBytesRead = xhr.responseText.length;
+        processSSE(newData);
       };
+
+      xhr.onload = () => {
+        if (sseHandled) return;
+        if (xhr.status !== 200) {
+          let msg;
+          try { const d = JSON.parse(xhr.responseText); msg = d.error || `Virhe ${xhr.status}`; }
+          catch (_) { msg = `Virhe ${xhr.status}: ${xhr.responseText.substring(0, 200)}`; }
+          showError(msg);
+          return;
+        }
+        const remaining = xhr.responseText.slice(sseBytesRead);
+        if (remaining) processSSE(remaining);
+        if (!sseHandled) showError('Vastauksen käsittelyvirhe — yritä uudelleen');
+      };
+
       xhr.send(JSON.stringify({
         photo_b64: b64, photo_type: 'image/jpeg',
         description: $('description').value.trim(), style,

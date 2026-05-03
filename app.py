@@ -2,8 +2,9 @@ import os
 import base64
 import json
 import io
+import time
 
-from flask import Flask, render_template, request, jsonify, make_response
+from flask import Flask, render_template, request, jsonify, make_response, Response, stream_with_context
 import anthropic
 from dotenv import load_dotenv
 from PIL import Image
@@ -158,100 +159,117 @@ def index():
 
 @app.route('/critique', methods=['POST'])
 def critique():
-  try:
-    # Accept both JSON (base64) and multipart/form-data
-    if request.is_json:
-        body = request.get_json(force=True, silent=True) or {}
-        description = (body.get('description') or '').strip()
-        style = body.get('style', 'art')
-        photo_b64_raw = body.get('photo_b64', '')
-        media_type = body.get('photo_type', 'image/jpeg')
-
-        if not photo_b64_raw:
-            return jsonify({'error': 'Kuvaa ei ladattu'}), 400
-        if not description:
-            return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
-        if media_type not in ALLOWED_TYPES:
-            media_type = 'image/jpeg'
-
-        try:
-            raw = base64.b64decode(photo_b64_raw)
-            image_data, media_type = _prepare_image_bytes(raw, media_type)
-        except Exception as exc:
-            return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
-
-    else:
-        if 'photo' not in request.files:
-            return jsonify({'error': 'Kuvaa ei ladattu'}), 400
-
-        photo = request.files['photo']
-        description = request.form.get('description', '').strip()
-        style = request.form.get('style', 'art')
-
-        if not photo.filename:
-            return jsonify({'error': 'Kuvaa ei valittu'}), 400
-        if not description:
-            return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
-
-        try:
-            image_data, media_type = _prepare_image(photo)
-        except ValueError as exc:
-            return jsonify({'error': str(exc)}), 400
-        except Exception as exc:
-            return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
-
-    image_b64 = base64.standard_b64encode(image_data).decode('utf-8')
-    style_name = STYLE_NAMES.get(style, 'Valokuvaus')
-
-    user_message = (
-        f'Arvioi tämä {style_name.lower()}-kuva.\n\n'
-        f'Kuvaajan oma kuvaus: "{description}"\n\n'
-        f'Anna ammattitaitoinen, yksityiskohtainen arvostelu {style_name.lower()} '
-        f'genren vaatimusten ja standardien mukaan. Muista: vastaa yksinomaan suomeksi.'
-    )
-
     try:
-        response = client.messages.create(
-            model='claude-sonnet-4-6',
-            max_tokens=2048,
-            system=[{
-                'type': 'text',
-                'text': SYSTEM_PROMPT,
-                'cache_control': {'type': 'ephemeral'},
-            }],
-            tools=[CRITIQUE_TOOL],
-            tool_choice={'type': 'tool', 'name': 'submit_critique'},
-            messages=[{
-                'role': 'user',
-                'content': [
-                    {
-                        'type': 'image',
-                        'source': {
-                            'type': 'base64',
-                            'media_type': media_type,
-                            'data': image_b64,
-                        },
-                    },
-                    {'type': 'text', 'text': user_message},
-                ],
-            }],
+        # Accept both JSON (base64) and multipart/form-data
+        if request.is_json:
+            body = request.get_json(force=True, silent=True) or {}
+            description = (body.get('description') or '').strip()
+            style = body.get('style', 'art')
+            photo_b64_raw = body.get('photo_b64', '')
+            media_type = body.get('photo_type', 'image/jpeg')
+
+            if not photo_b64_raw:
+                return jsonify({'error': 'Kuvaa ei ladattu'}), 400
+            if not description:
+                return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
+            if media_type not in ALLOWED_TYPES:
+                media_type = 'image/jpeg'
+
+            try:
+                raw = base64.b64decode(photo_b64_raw)
+                image_data, media_type = _prepare_image_bytes(raw, media_type)
+            except Exception as exc:
+                return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
+
+        else:
+            if 'photo' not in request.files:
+                return jsonify({'error': 'Kuvaa ei ladattu'}), 400
+
+            photo = request.files['photo']
+            description = request.form.get('description', '').strip()
+            style = request.form.get('style', 'art')
+
+            if not photo.filename:
+                return jsonify({'error': 'Kuvaa ei valittu'}), 400
+            if not description:
+                return jsonify({'error': 'Lisää kuvaus kuvasta ennen arviointia'}), 400
+
+            try:
+                image_data, media_type = _prepare_image(photo)
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
+            except Exception as exc:
+                return jsonify({'error': f'Kuvan käsittelyvirhe: {exc}'}), 400
+
+        image_b64 = base64.standard_b64encode(image_data).decode('utf-8')
+        style_name = STYLE_NAMES.get(style, 'Valokuvaus')
+
+        user_message = (
+            f'Arvioi tämä {style_name.lower()}-kuva.\n\n'
+            f'Kuvaajan oma kuvaus: "{description}"\n\n'
+            f'Anna ammattitaitoinen, yksityiskohtainen arvostelu {style_name.lower()} '
+            f'genren vaatimusten ja standardien mukaan. Muista: vastaa yksinomaan suomeksi.'
         )
-    except anthropic.APIError as exc:
-        return jsonify({'error': f'API-virhe: {exc}'}), 500
+
+        def generate():
+            # Send keepalive immediately so the proxy doesn't time out
+            yield 'data: {"type":"keepalive"}\n\n'
+            try:
+                with client.messages.stream(
+                    model='claude-sonnet-4-6',
+                    max_tokens=2048,
+                    system=[{
+                        'type': 'text',
+                        'text': SYSTEM_PROMPT,
+                        'cache_control': {'type': 'ephemeral'},
+                    }],
+                    tools=[CRITIQUE_TOOL],
+                    tool_choice={'type': 'tool', 'name': 'submit_critique'},
+                    messages=[{
+                        'role': 'user',
+                        'content': [
+                            {
+                                'type': 'image',
+                                'source': {
+                                    'type': 'base64',
+                                    'media_type': media_type,
+                                    'data': image_b64,
+                                },
+                            },
+                            {'type': 'text', 'text': user_message},
+                        ],
+                    }],
+                ) as stream:
+                    last_hb = time.monotonic()
+                    for _ in stream:
+                        if time.monotonic() - last_hb >= 4:
+                            yield 'data: {"type":"keepalive"}\n\n'
+                            last_hb = time.monotonic()
+                    response = stream.get_final_message()
+
+                tool_block = next(b for b in response.content if b.type == 'tool_use')
+                result = tool_block.input
+                result['grade'] = max(1, min(10, int(result.get('grade', 5))))
+                result['type'] = 'result'
+                yield f'data: {json.dumps(result, ensure_ascii=False)}\n\n'
+
+            except anthropic.APIError as exc:
+                yield f'data: {json.dumps({"type": "error", "error": f"API-virhe: {exc}"})}\n\n'
+            except Exception as exc:
+                yield f'data: {json.dumps({"type": "error", "error": f"Virhe: {type(exc).__name__}: {exc}"})}\n\n'
+
+        return Response(
+            stream_with_context(generate()),
+            content_type='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+                'Connection': 'keep-alive',
+            },
+        )
+
     except Exception as exc:
         return jsonify({'error': f'Virhe: {type(exc).__name__}: {exc}'}), 500
-
-    try:
-        tool_block = next(b for b in response.content if b.type == 'tool_use')
-        result = tool_block.input
-    except (StopIteration, AttributeError):
-        return jsonify({'error': 'Vastauksen käsittelyvirhe — yritä uudelleen'}), 500
-
-    result['grade'] = max(1, min(10, int(result.get('grade', 5))))
-    return jsonify(result)
-
-  except Exception as exc:
-    return jsonify({'error': f'Virhe: {type(exc).__name__}: {exc}'}), 500
 
 
 if __name__ == '__main__':
