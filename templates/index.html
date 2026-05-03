@@ -367,17 +367,19 @@ $('critique-form').addEventListener('submit', e => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/critique');
       xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.responseType = 'text';
       xhr.onerror = () => showError('Verkkovirhe — tarkista yhteys ja yritä uudelleen');
 
       let sseHandled = false;
       let sseBytesRead = 0;
 
       function processSSE(text) {
-        text.split('\n\n').forEach(chunk => {
+        // Normalise line endings so \r\n and \n both work
+        text.replace(/\r\n/g, '\n').split('\n\n').forEach(chunk => {
           const match = chunk.match(/^data: (.+)$/m);
           if (!match || sseHandled) return;
           let ev;
-          try { ev = JSON.parse(match[1]); } catch(e) { return; }
+          try { ev = JSON.parse(match[1].trim()); } catch(e) { return; }
           if (ev.type === 'result') {
             sseHandled = true;
             renderResults(ev);

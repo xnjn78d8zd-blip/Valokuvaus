@@ -267,11 +267,12 @@ def critique():
 
         return Response(
             stream_with_context(generate()),
-            content_type='text/event-stream',
+            content_type='text/plain; charset=utf-8',
             headers={
                 'Cache-Control': 'no-cache',
                 'X-Accel-Buffering': 'no',
                 'Connection': 'keep-alive',
+                'X-Content-Type-Options': 'nosniff',
             },
         )
 
