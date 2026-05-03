@@ -58,6 +58,13 @@
       <div class="style-grid">
 
         <label>
+          <input type="radio" name="style" value="portrait" checked>
+          <span class="style-btn">
+            <span class="icon">🧑</span>Muotokuva
+          </span>
+        </label>
+
+        <label>
           <input type="radio" name="style" value="fashion">
           <span class="style-btn">
             <span class="icon">👗</span>Muoti
@@ -65,7 +72,49 @@
         </label>
 
         <label>
-          <input type="radio" name="style" value="art" checked>
+          <input type="radio" name="style" value="sports">
+          <span class="style-btn">
+            <span class="icon">⚡</span>Urheilu
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="nature">
+          <span class="style-btn">
+            <span class="icon">🌿</span>Luonto
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="landscape">
+          <span class="style-btn">
+            <span class="icon">🌄</span>Maisema
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="street">
+          <span class="style-btn">
+            <span class="icon">🚶</span>Katu
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="wedding">
+          <span class="style-btn">
+            <span class="icon">💒</span>Häät
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="architecture">
+          <span class="style-btn">
+            <span class="icon">🏛️</span>Arkkitehtuuri
+          </span>
+        </label>
+
+        <label>
+          <input type="radio" name="style" value="art">
           <span class="style-btn">
             <span class="icon">🎨</span>Taide
           </span>
@@ -105,7 +154,12 @@
 
   <!-- Loading -->
   <div id="loading" aria-live="polite">
-    <div class="spinner"></div>
+    <div class="scan-container">
+      <img id="scan-preview" src="" alt="">
+      <div class="scan-orbit">
+        <span class="scan-glass">🔍</span>
+      </div>
+    </div>
     <p>Professori tarkastelee kuvaasi…</p>
   </div>
 
@@ -270,12 +324,15 @@ $('critique-form').addEventListener('submit', e => {
 
   errorBanner.style.display = 'none';
   results.style.display = 'none';
+  $('critique-form').style.display = 'none';
+  $('scan-preview').src = previewImg.src;
   loading.style.display = 'block';
   submitBtn.disabled = true;
   submitBtn.textContent = 'Arvioidaan…';
 
   function resetUI() {
     loading.style.display = 'none';
+    $('critique-form').style.display = 'block';
     submitBtn.disabled = false;
     submitBtn.textContent = '✦ Arvioi valokuva';
   }
@@ -401,6 +458,7 @@ function renderResults(d) {
 // ── Reset ─────────────────────────────────────────────────────────────────
 $('reset-btn').addEventListener('click', () => {
   $('results').style.display = 'none';
+  $('critique-form').style.display = 'block';
   clearPreview();
   $('description').value = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });

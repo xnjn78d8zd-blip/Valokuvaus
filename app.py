@@ -17,11 +17,18 @@ app.config['MAX_CONTENT_LENGTH'] = 40 * 1024 * 1024  # 40 MB — base64 JSON is 
 client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
 
 STYLE_NAMES = {
-    'fashion': 'Muotivalokuvaus',
-    'art': 'Taidevalokuvaus',
-    'food': 'Ruokavalkuvaus',
-    'documentary': 'Dokumentaarinen valokuvaus',
-    'press': 'Lehtivalokuvaus',
+    'portrait':     'Muotokuva',
+    'fashion':      'Muotivalokuvaus',
+    'sports':       'Urheiluvalokuvaus',
+    'nature':       'Luontovalokuvaus',
+    'landscape':    'Maisemavalokuvaus',
+    'street':       'Katukuvaus',
+    'wedding':      'Häävalokuvaus',
+    'architecture': 'Arkkitehtuurivalokuvaus',
+    'art':          'Taidevalokuvaus',
+    'food':         'Ruokavalokuvaus',
+    'documentary':  'Dokumentaarinen valokuvaus',
+    'press':        'Lehtivalokuvaus',
 }
 
 SYSTEM_PROMPT = """Olet kokenut valokuvaustaiteen professori ja kansainvälinen tuomari, jolla on yli 30 vuoden kokemus kaikista valokuvauksen lajeista. Arvioit valokuvia opettajan silmin — kriittisesti mutta rakentavasti, kuten oikeassa oppilaitoksen kritiikkisessiossa.
