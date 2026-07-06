@@ -3,267 +3,278 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Valokuvauksen Arvostelu – AI-lehtori</title>
+  <title>Valokuvaus — AI-analyysi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Valokuvaus">
-  <meta name="theme-color" content="#111214">
+  <meta name="theme-color" content="#000000">
 </head>
 <body>
 
 <header class="site-header">
-  <div class="logo">📷</div>
-  <h1>Valokuvauksen Arvostelu</h1>
-  <p>Tekoäly arvostelee kuvasi kuin kokenut valokuvaustaiteen professori</p>
+  <div class="wordmark">
+    <div class="wordmark-badge">◎</div>
+    <span class="wordmark-name">Valokuvaus</span>
+  </div>
+  <p class="site-tagline">Tekoälypohjainen valokuva-analyysi</p>
 </header>
 
 <main class="container">
 
-  <!-- ── Upload form ──────────────────────────────────────────────── -->
+  <!-- ── Form ──────────────────────────────────────────────────────────── -->
   <form id="critique-form" enctype="multipart/form-data">
 
-    <!-- Photo drop zone -->
-    <div class="upload-card" id="drop-zone">
+    <!-- Photo stage -->
+    <div class="photo-stage" id="drop-zone">
       <input type="file" id="photo-input" name="photo"
-             accept="image/*"
-             required aria-label="Valitse kuva">
-      <div id="upload-placeholder">
-        <div class="upload-icon">🖼️</div>
-        <h2>Lataa valokuva</h2>
-        <p>Klikkaa tai vedä kuva tähän · JPEG, PNG, WebP, GIF · max 20 MB</p>
+             accept="image/*" required aria-label="Valitse kuva">
+      <div class="stage-empty" id="upload-placeholder">
+        <div class="stage-plus">+</div>
+        <h2>Lisää valokuva</h2>
+        <p>Vedä tai napauta · JPEG · PNG · WebP · max 20 MB</p>
       </div>
       <div id="preview-wrapper">
         <img id="preview-img" src="" alt="Esikatselu">
-        <button type="button" class="preview-remove" id="remove-photo"
-                aria-label="Poista kuva">✕</button>
+        <button type="button" class="preview-remove" id="remove-photo" aria-label="Poista">✕</button>
       </div>
     </div>
 
     <!-- Description -->
     <div class="form-section">
-      <label for="description">Kuvan kuvaus <span style="color:var(--accent)">*</span></label>
+      <label class="field-label" for="description">
+        Kuvaus &nbsp;<span style="color:var(--gold)">✦</span>
+      </label>
       <textarea id="description" name="description" rows="3"
-                placeholder="Kerro lyhyesti mitä kuva esittää, missä se on otettu ja mikä oli ideasi tai intentio sen takana..."
+                placeholder="Mitä kuva esittää, missä se on otettu, mikä oli ideasi…"
                 required></textarea>
     </div>
 
-    <!-- Style selector -->
+    <!-- Style strip -->
     <div class="form-section">
-      <label>Valokuvatyyli</label>
-      <div class="style-grid">
+      <label class="field-label">Valokuvatyyli</label>
+      <div class="style-strip">
 
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="portrait" checked>
-          <span class="style-btn">
-            <span class="icon">🧑</span>Muotokuva
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🧑</span>Muotokuva</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="fashion">
-          <span class="style-btn">
-            <span class="icon">👗</span>Muoti
-          </span>
+          <span class="chip-inner"><span class="chip-icon">👗</span>Muoti</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="sports">
-          <span class="style-btn">
-            <span class="icon">⚡</span>Urheilu
-          </span>
+          <span class="chip-inner"><span class="chip-icon">⚡</span>Urheilu</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="nature">
-          <span class="style-btn">
-            <span class="icon">🌿</span>Luonto
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🌿</span>Luonto</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="landscape">
-          <span class="style-btn">
-            <span class="icon">🌄</span>Maisema
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🌄</span>Maisema</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="street">
-          <span class="style-btn">
-            <span class="icon">🚶</span>Katu
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🚶</span>Katu</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="wedding">
-          <span class="style-btn">
-            <span class="icon">💒</span>Häät
-          </span>
+          <span class="chip-inner"><span class="chip-icon">💒</span>Häät</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="architecture">
-          <span class="style-btn">
-            <span class="icon">🏛️</span>Arkkitehtuuri
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🏛️</span>Arkkitehtuuri</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="art">
-          <span class="style-btn">
-            <span class="icon">🎨</span>Taide
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🎨</span>Taide</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="food">
-          <span class="style-btn">
-            <span class="icon">🍽️</span>Ruoka
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🍽️</span>Ruoka</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="documentary">
-          <span class="style-btn">
-            <span class="icon">🌍</span>Dokumentaarinen
-          </span>
+          <span class="chip-inner"><span class="chip-icon">🌍</span>Dokumentti</span>
         </label>
-
-        <label>
+        <label class="style-chip">
           <input type="radio" name="style" value="press">
-          <span class="style-btn">
-            <span class="icon">📰</span>Lehtikuva
-          </span>
+          <span class="chip-inner"><span class="chip-icon">📰</span>Lehtikuva</span>
         </label>
 
       </div>
     </div>
 
     <button type="submit" class="btn-submit" id="submit-btn">
-      ✦ Arvioi valokuva
+      Arvioi valokuva
     </button>
+
   </form>
 
   <!-- Error -->
   <div class="error-banner" id="error-banner" role="alert"></div>
 
-  <!-- Loading (fullscreen) -->
+  <!-- ── Loading (fullscreen) ──────────────────────────────────────────── -->
   <div id="loading" aria-live="polite">
-    <div class="scan-container">
+    <div class="scan-frame">
       <img id="scan-preview" src="" alt="">
       <div class="scan-overlay">
+        <div class="scan-vignette"></div>
         <div class="scan-kit">
           <span class="scan-glass">🔍</span>
           <div class="scan-beam"></div>
         </div>
       </div>
     </div>
-    <p class="scan-text">Professori tarkastelee kuvaasi<span id="scan-dots"></span></p>
+    <div class="scan-caption">
+      <p class="scan-title">Professori analysoi kuvaasi<span id="scan-dots"></span></p>
+      <p class="scan-sub">Kestää noin 15–25 sekuntia</p>
+    </div>
   </div>
 
-  <!-- ── Results ─────────────────────────────────────────────────── -->
+  <!-- ── Results ───────────────────────────────────────────────────────── -->
   <section id="results" aria-live="polite">
 
-    <!-- Grade header -->
-    <div class="results-header">
-      <div class="grade-ring">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <!-- track -->
-          <circle cx="55" cy="55" r="46"
-                  fill="none" stroke="#2e3035" stroke-width="11"/>
-          <!-- progress arc -->
-          <circle id="grade-arc" cx="55" cy="55" r="46"
-                  fill="none" stroke="#f5a623" stroke-width="11"
+    <!-- Grade hero -->
+    <div class="grade-hero">
+      <img id="result-thumb" class="result-thumb" src="" alt="">
+
+      <div class="grade-ring-wrap">
+        <svg width="124" height="124" viewBox="0 0 124 124">
+          <circle cx="62" cy="62" r="52"
+                  fill="none" stroke="#1c1c1f" stroke-width="10"/>
+          <circle id="grade-arc" cx="62" cy="62" r="52"
+                  fill="none" stroke="#f5a623" stroke-width="10"
                   stroke-linecap="round"
-                  stroke-dasharray="289.03"
-                  stroke-dashoffset="289.03"
-                  transform="rotate(-90 55 55)"
-                  style="transition: stroke-dashoffset .8s ease, stroke .4s ease"/>
+                  stroke-dasharray="326.73"
+                  stroke-dashoffset="326.73"
+                  transform="rotate(-90 62 62)"
+                  style="transition: stroke-dashoffset .9s cubic-bezier(0.16,1,0.3,1), stroke .35s ease"/>
         </svg>
-        <div class="grade-number">
-          <span id="grade-value" style="color: var(--accent)">–</span>
-          <span class="grade-denom">/100</span>
+        <div class="grade-inside">
+          <span id="grade-value" class="grade-num">–</span>
+          <span class="grade-denom-txt">/100</span>
         </div>
       </div>
 
-      <div class="grade-info">
-        <h2 id="grade-label">Arvosana</h2>
-        <p id="grade-explanation"></p>
-      </div>
+      <h2 id="grade-label" class="grade-title">–</h2>
+      <p id="grade-explanation" class="grade-explain"></p>
     </div>
 
-    <!-- Sub-scores -->
-    <div class="subscores-panel">
-      <div class="subscore-row">
-        <span class="sslabel">⚙️ Tekniikka</span>
-        <div class="ssbar"><div class="ssbar-fill" id="score-tekniikka"></div></div>
-        <span class="ssval" id="val-tekniikka">—</span>
-      </div>
-      <div class="subscore-row">
-        <span class="sslabel">💡 Valaistus</span>
-        <div class="ssbar"><div class="ssbar-fill" id="score-valaistus"></div></div>
-        <span class="ssval" id="val-valaistus">—</span>
-      </div>
-      <div class="subscore-row">
-        <span class="sslabel">🔲 Sommittelu</span>
-        <div class="ssbar"><div class="ssbar-fill" id="score-sommittelu"></div></div>
-        <span class="ssval" id="val-sommittelu">—</span>
-      </div>
-      <div class="subscore-row">
-        <span class="sslabel">🎨 Väri & Sävy</span>
-        <div class="ssbar"><div class="ssbar-fill" id="score-vari"></div></div>
-        <span class="ssval" id="val-vari">—</span>
-      </div>
-      <div class="subscore-row">
-        <span class="sslabel">✨ Luovuus</span>
-        <div class="ssbar"><div class="ssbar-fill" id="score-luovuus"></div></div>
-        <span class="ssval" id="val-luovuus">—</span>
-      </div>
-      <div class="subscore-row">
-        <span class="sslabel">❤️ Tunnelma</span>
-        <div class="ssbar"><div class="ssbar-fill" id="score-tunnelma"></div></div>
-        <span class="ssval" id="val-tunnelma">—</span>
+    <!-- Sub-score rings (3 × 2) -->
+    <div class="subscores-wrap">
+      <div class="section-eyebrow">Osa-alueet</div>
+      <div class="subscores-grid">
+
+        <div class="ss-cell">
+          <div class="mini-ring-host">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="mr-track" cx="32" cy="32" r="26"/>
+              <circle class="mr-fill" id="ring-tekniikka" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="mini-ring-icon">⚙️</span>
+          </div>
+          <span class="ss-val" id="val-tekniikka">—</span>
+          <span class="ss-name">Tekniikka</span>
+        </div>
+
+        <div class="ss-cell">
+          <div class="mini-ring-host">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="mr-track" cx="32" cy="32" r="26"/>
+              <circle class="mr-fill" id="ring-valaistus" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="mini-ring-icon">💡</span>
+          </div>
+          <span class="ss-val" id="val-valaistus">—</span>
+          <span class="ss-name">Valaistus</span>
+        </div>
+
+        <div class="ss-cell">
+          <div class="mini-ring-host">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="mr-track" cx="32" cy="32" r="26"/>
+              <circle class="mr-fill" id="ring-sommittelu" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="mini-ring-icon">🔲</span>
+          </div>
+          <span class="ss-val" id="val-sommittelu">—</span>
+          <span class="ss-name">Sommittelu</span>
+        </div>
+
+        <div class="ss-cell">
+          <div class="mini-ring-host">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="mr-track" cx="32" cy="32" r="26"/>
+              <circle class="mr-fill" id="ring-vari" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="mini-ring-icon">🎨</span>
+          </div>
+          <span class="ss-val" id="val-vari">—</span>
+          <span class="ss-name">Väri & Sävy</span>
+        </div>
+
+        <div class="ss-cell">
+          <div class="mini-ring-host">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="mr-track" cx="32" cy="32" r="26"/>
+              <circle class="mr-fill" id="ring-luovuus" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="mini-ring-icon">✨</span>
+          </div>
+          <span class="ss-val" id="val-luovuus">—</span>
+          <span class="ss-name">Luovuus</span>
+        </div>
+
+        <div class="ss-cell">
+          <div class="mini-ring-host">
+            <svg width="64" height="64" viewBox="0 0 64 64">
+              <circle class="mr-track" cx="32" cy="32" r="26"/>
+              <circle class="mr-fill" id="ring-tunnelma" cx="32" cy="32" r="26" transform="rotate(-90 32 32)"/>
+            </svg>
+            <span class="mini-ring-icon">❤️</span>
+          </div>
+          <span class="ss-val" id="val-tunnelma">—</span>
+          <span class="ss-name">Tunnelma</span>
+        </div>
+
       </div>
     </div>
 
     <!-- Analysis cards -->
-    <div class="cards-grid">
-
-      <div class="card">
-        <h3>⚙️ Tekniikka</h3>
-        <p id="technical-analysis"></p>
-      </div>
-
-      <div class="card">
-        <h3>🔲 Sommittelu</h3>
-        <p id="composition-analysis"></p>
-      </div>
-
-      <div class="card card-full">
-        <h3 id="style-label">🎯 Genrepalaute</h3>
-        <p id="style-feedback"></p>
-      </div>
-
-      <div class="card card-full">
-        <h3>💡 Parannusehdotukset</h3>
-        <ul class="improvements-list" id="improvements-list"></ul>
-      </div>
-
+    <div class="a-card">
+      <div class="a-label">⚙️ Tekninen analyysi</div>
+      <p id="technical-analysis"></p>
     </div>
 
-    <!-- Summary -->
-    <div class="summary-box">
-      <h3>✅ Kokonaisarvio</h3>
+    <div class="a-card">
+      <div class="a-label">🔲 Sommittelu</div>
+      <p id="composition-analysis"></p>
+    </div>
+
+    <div class="a-card">
+      <div class="a-label" id="style-label">🎯 Genrepalaute</div>
+      <p id="style-feedback"></p>
+    </div>
+
+    <div class="a-card">
+      <div class="a-label">💡 Parannusehdotukset</div>
+      <ul class="improve-list" id="improvements-list"></ul>
+    </div>
+
+    <div class="summary-card">
+      <div class="a-label">✅ Kokonaisarvio</div>
       <p id="overall-summary"></p>
     </div>
 
     <button type="button" class="btn-reset" id="reset-btn">
-      ↩ Arvioi toinen kuva
+      ↩ &nbsp;Arvioi toinen kuva
     </button>
 
   </section>
@@ -274,11 +285,11 @@
 // ── Helpers ───────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-function gradeColor(g) {
-  if (g <= 30) return '#e05252';
-  if (g <= 50) return '#f0882a';
-  if (g <= 70) return '#f5a623';
-  return '#4caf7d';
+function scoreColor(s) {
+  if (s <= 40) return '#ff453a';
+  if (s <= 60) return '#ff9f0a';
+  if (s <= 75) return '#f5a623';
+  return '#30d158';
 }
 
 function gradeLabel(g) {
@@ -290,13 +301,6 @@ function gradeLabel(g) {
   if (g <= 80) return 'Kiitettävä';
   if (g <= 90) return 'Erinomainen';
   return 'Mestariteos';
-}
-
-function barColor(s) {
-  if (s <= 40) return '#e05252';
-  if (s <= 60) return '#f0882a';
-  if (s <= 75) return '#f5a623';
-  return '#4caf7d';
 }
 
 // ── Upload / preview ──────────────────────────────────────────────────────
@@ -319,7 +323,7 @@ function showPreview(file) {
 function clearPreview() {
   previewImg.src = '';
   previewWrap.style.display = 'none';
-  placeholder.style.display = 'block';
+  placeholder.style.display = 'flex';
   photoInput.value = '';
 }
 
@@ -332,7 +336,6 @@ $('remove-photo').addEventListener('click', e => {
   clearPreview();
 });
 
-// Drag & drop
 ['dragenter', 'dragover'].forEach(ev =>
   dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag-over'); })
 );
@@ -342,7 +345,6 @@ $('remove-photo').addEventListener('click', e => {
 dropZone.addEventListener('drop', e => {
   const file = e.dataTransfer.files[0];
   if (file && file.type.startsWith('image/')) {
-    // Inject file into the input for form submission
     const dt = new DataTransfer();
     dt.items.add(file);
     photoInput.files = dt.files;
@@ -372,7 +374,6 @@ $('critique-form').addEventListener('submit', e => {
   $('scan-preview').src = previewImg.src;
   loading.style.display = 'flex';
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Arvioidaan…';
 
   let dotCount = 0;
   const dotsTimer = setInterval(() => {
@@ -385,20 +386,17 @@ $('critique-form').addEventListener('submit', e => {
     loading.style.display = 'none';
     $('critique-form').style.display = 'block';
     submitBtn.disabled = false;
-    submitBtn.textContent = '✦ Arvioi valokuva';
   }
 
   function showError(msg) {
-    errorBanner.textContent = `⚠️ ${msg}`;
+    errorBanner.textContent = '⚠️ ' + msg;
     errorBanner.style.display = 'block';
     resetUI();
   }
 
-  // Step 1: read file
   const reader = new FileReader();
-  reader.onerror = () => showError('Kuvan lukeminen epäonnistui — kokeile toista kuvaa');
+  reader.onerror = () => showError('Kuvan lukeminen epäonnistui');
   reader.onload = () => {
-    // Step 2: resize to max 1568px via canvas (reduces 15MB iPhone photo to ~0.5MB)
     const img = new Image();
     img.onerror = () => showError('Kuvan avaaminen epäonnistui');
     img.onload = () => {
@@ -413,7 +411,6 @@ $('critique-form').addEventListener('submit', e => {
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 
-      // Step 3: POST as JSON via XHR, read SSE stream via onprogress
       const style = document.querySelector('input[name="style"]:checked').value;
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/critique');
@@ -421,11 +418,9 @@ $('critique-form').addEventListener('submit', e => {
       xhr.responseType = 'text';
       xhr.onerror = () => showError('Verkkovirhe — tarkista yhteys ja yritä uudelleen');
 
-      let sseHandled = false;
-      let sseBytesRead = 0;
+      let sseHandled = false, sseBytesRead = 0;
 
       function processSSE(text) {
-        // Normalise line endings so \r\n and \n both work
         text.replace(/\r\n/g, '\n').split('\n\n').forEach(chunk => {
           const match = chunk.match(/^data: (.+)$/m);
           if (!match || sseHandled) return;
@@ -455,8 +450,8 @@ $('critique-form').addEventListener('submit', e => {
         if (sseHandled) return;
         if (xhr.status !== 200) {
           let msg;
-          try { const d = JSON.parse(xhr.responseText); msg = d.error || `Virhe ${xhr.status}`; }
-          catch (_) { msg = `Virhe ${xhr.status}: ${xhr.responseText.substring(0, 200)}`; }
+          try { const d = JSON.parse(xhr.responseText); msg = d.error || 'Virhe ' + xhr.status; }
+          catch (_) { msg = 'Virhe ' + xhr.status + ': ' + xhr.responseText.substring(0, 200); }
           showError(msg);
           return;
         }
@@ -477,51 +472,64 @@ $('critique-form').addEventListener('submit', e => {
 
 // ── Render results ────────────────────────────────────────────────────────
 function renderResults(d) {
-  const g     = d.grade;
-  const color = gradeColor(g);
-  const circ  = 289.03; // 2π × 46
+  const g = d.grade;
+  const CIRC = 326.73; // 2π × 52
 
-  // Grade ring animation
+  // Thumb
+  $('result-thumb').src = $('preview-img').src;
+
+  // Grade ring
+  const color = scoreColor(g > 70 ? 100 : g); // reuse color fn for grade
+  const gradeCol = g <= 40 ? '#ff453a' : g <= 60 ? '#ff9f0a' : g <= 75 ? '#f5a623' : '#30d158';
   const arc = $('grade-arc');
-  arc.style.stroke = color;
-  arc.style.strokeDashoffset = circ * (1 - g / 100);
+  arc.style.stroke = gradeCol;
+  arc.style.strokeDashoffset = CIRC * (1 - g / 100);
 
-  // Grade number
   const gv = $('grade-value');
   gv.textContent = g;
-  gv.style.color = color;
+  gv.style.color = gradeCol;
 
   $('grade-label').textContent = gradeLabel(g);
-  $('grade-explanation').textContent = d.grade_explanation;
+  $('grade-explanation').textContent = d.grade_explanation || '';
 
-  // Sub-scores
+  // Mini rings
+  const MINI_CIRC = 163.36; // 2π × 26
   const scoreMap = {
-    'tekniikka': (d.scores || {}).tekniikka,
-    'valaistus':  (d.scores || {}).valaistus,
-    'sommittelu': (d.scores || {}).sommittelu,
-    'vari':       (d.scores || {}).vari_ja_savy,
-    'luovuus':    (d.scores || {}).luovuus,
-    'tunnelma':   (d.scores || {}).tunnelma,
+    tekniikka:  (d.scores || {}).tekniikka,
+    valaistus:  (d.scores || {}).valaistus,
+    sommittelu: (d.scores || {}).sommittelu,
+    vari:       (d.scores || {}).vari_ja_savy,
+    luovuus:    (d.scores || {}).luovuus,
+    tunnelma:   (d.scores || {}).tunnelma,
   };
-  Object.entries(scoreMap).forEach(([key, val]) => {
+
+  Object.entries(scoreMap).forEach(([key, val], i) => {
     const s = Math.max(0, Math.min(100, val || 0));
-    $('val-' + key).textContent = s;
-    const fill = $('score-' + key);
-    const c = barColor(s);
-    fill.style.background = 'linear-gradient(90deg,' + c + '99,' + c + ')';
-    setTimeout(() => { fill.style.width = s + '%'; }, 80);
+    const c = scoreColor(s);
+    const ring = $('ring-' + key);
+    ring.style.stroke = c;
+    const valEl = $('val-' + key);
+    valEl.textContent = s;
+    valEl.style.color = c;
+    setTimeout(() => {
+      ring.style.strokeDashoffset = MINI_CIRC * (1 - s / 100);
+    }, 120 + i * 90);
   });
 
-  $('technical-analysis').textContent  = d.technical_analysis;
-  $('composition-analysis').textContent = d.composition_analysis;
-  $('style-feedback').textContent       = d.style_feedback;
-  $('overall-summary').textContent      = d.overall_summary;
+  // Text sections
+  $('technical-analysis').textContent  = d.technical_analysis  || '';
+  $('composition-analysis').textContent = d.composition_analysis || '';
+  $('style-feedback').textContent       = d.style_feedback      || '';
+  $('overall-summary').textContent      = d.overall_summary     || '';
 
+  // Improvements
   const list = $('improvements-list');
   list.innerHTML = '';
-  (d.improvements || []).forEach(tip => {
+  (d.improvements || []).forEach((tip, i) => {
     const li = document.createElement('li');
-    li.textContent = tip;
+    li.innerHTML =
+      '<span class="imp-badge">' + (i + 1) + '</span>' +
+      '<span>' + tip + '</span>';
     list.appendChild(li);
   });
 }
