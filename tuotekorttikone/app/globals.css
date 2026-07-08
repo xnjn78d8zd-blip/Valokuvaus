@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700;800&display=swap');
+
+:root {
+  --font-sans: 'Inter';
+  --font-display: 'Playfair Display';
+}
+
+html { color-scheme: dark; }
+html.light { color-scheme: light; }
+
+body {
+  @apply bg-ink-950 text-ink-100 antialiased;
+}
+html.light body {
+  @apply bg-ink-50 text-ink-900;
+}
+
+/* ── Sovelluksen peruskomponentit ── */
+.panel {
+  @apply rounded-2xl border border-ink-700/60 bg-ink-900/80 shadow-card;
+}
+html.light .panel {
+  @apply border-ink-100 bg-white;
+}
+.input {
+  @apply w-full rounded-lg border border-ink-700 bg-ink-850 px-3 py-2 text-sm text-ink-100
+    placeholder:text-ink-600 focus:border-brass focus:outline-none focus:ring-1 focus:ring-brass/40;
+}
+html.light .input {
+  @apply border-ink-100 bg-white text-ink-900 placeholder:text-ink-400;
+}
+.label {
+  @apply mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400;
+}
+.btn {
+  @apply inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition
+    focus:outline-none focus:ring-2 focus:ring-brass/40 disabled:cursor-not-allowed disabled:opacity-40;
+}
+.btn-primary { @apply btn bg-brass text-ink-950 hover:bg-brass-bright; }
+.btn-ghost { @apply btn border border-ink-700 text-ink-300 hover:border-ink-400 hover:text-ink-100; }
+html.light .btn-ghost { @apply border-ink-100 text-ink-600 hover:border-ink-400 hover:text-ink-900; }
+.btn-danger { @apply btn border border-red-900/60 text-red-400 hover:bg-red-950/40; }
+
+.h1 { @apply font-display text-3xl font-semibold tracking-tight md:text-4xl; }
+.h2 { @apply font-display text-xl font-semibold tracking-tight md:text-2xl; }
+.muted { @apply text-sm text-ink-400; }
+
+/* ── Kortin renderöinti (esikatselu + printti) ── */
+.card-sheet {
+  font-family: var(--b-body-font);
+  color: var(--b-text);
+  background: var(--b-paper);
+}
+.card-sheet .b-heading {
+  font-family: var(--b-heading-font);
+  text-transform: var(--b-heading-transform);
+  font-variant-caps: var(--b-heading-variant);
+  letter-spacing: var(--b-heading-tracking);
+}
+.card-sheet .b-img {
+  border-radius: var(--b-radius);
+  overflow: hidden;
+}
+
+/* ── Printti ── */
+@media print {
+  body { background: white !important; }
+  .no-print { display: none !important; }
+  .print-page {
+    width: 210mm;
+    min-height: 296mm;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always;
+  }
+  .print-page.landscape { width: 297mm; min-height: 209mm; }
+}
+@page { size: A4; margin: 0; }
